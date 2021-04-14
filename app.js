@@ -1,3 +1,4 @@
+require('dotenv').config(); 
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
@@ -6,29 +7,31 @@ const { pull } = require("lodash");
 
 const app = express();
 
-   //const instead of let?
-
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 app.use(express.static("public"));
 
-mongoose.connect("mongodb+srv://admin-alex:Test123@cluster0.ubjq7.mongodb.net/todolistDB?retryWrites=true&w=majority", {useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect("mongodb+srv://admin-alex:" + process.env.MONGO_PASSWORD + "@cluster0.ubjq7.mongodb.net/todolistDB?retryWrites=true&w=majority",
+    {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    });
 
-const itemsSchema = new mongoose.Schema ({
+const itemsSchema = new mongoose.Schema({
     name: String
 });
 
 const Item = mongoose.model("Item", itemsSchema);
 
-const item1 = new Item ({
+const item1 = new Item({
     name: "Buy Food"
 });
 
-const item2 = new Item ({
+const item2 = new Item({
     name: "Cook Food"
 });
 
-const item3 = new Item ({
+const item3 = new Item({
     name: "Eat Food"
 });
 
@@ -43,9 +46,9 @@ const List = mongoose.model("List", listSchema);
 
 
 app.get("/", function (req, res) {
-    
+
     Item.find({}, function (err, foundItems) {
-        
+
         if (foundItems.length === 0) {
             Item.insertMany(defaultItems, function (err) {
                 if (err) {
@@ -56,31 +59,31 @@ app.get("/", function (req, res) {
             });
             res.redirect("/");
         } else {
-            res.render("list", {listTitle: "Today", newListItems: foundItems});
+            res.render("list", { listTitle: "Today", newListItems: foundItems });
         }
-     });
+    });
 });
 
 
-app.get("/about", function (req,res) {
+app.get("/about", function (req, res) {
     res.render("about");
 });
 
-app.get("/:newlistName", function (req,res) {
+app.get("/:newlistName", function (req, res) {
     const newListName = _.capitalize(req.params.newlistName);
 
-    
-    List.findOne({name: newListName}, function (err, foundList) {
+
+    List.findOne({ name: newListName }, function (err, foundList) {
         if (!err) {
             if (!foundList) {
-                const list = new List ({
+                const list = new List({
                     name: newListName,
                     items: defaultItems
                 });
                 list.save();
                 res.redirect("/" + newListName);
             } else {
-                res.render("list", {listTitle: foundList.name, newListItems: foundList.items});
+                res.render("list", { listTitle: foundList.name, newListItems: foundList.items });
             }
         }
     });
@@ -90,7 +93,7 @@ app.post("/", function (req, res) {
     const itemName = req.body.newItem;
     const listName = req.body.list;
 
-    const item = new Item ({
+    const item = new Item({
         name: itemName
     });
 
@@ -98,7 +101,7 @@ app.post("/", function (req, res) {
         item.save();
         res.redirect("/");
     } else {
-        List.findOne({name: listName}, function (err, foundList) {
+        List.findOne({ name: listName }, function (err, foundList) {
             foundList.items.push(item);
             foundList.save();
             res.redirect("/" + listName);
@@ -106,7 +109,7 @@ app.post("/", function (req, res) {
     }
 });
 
-app.post("/delete", function (req,res) {
+app.post("/delete", function (req, res) {
     const checkedItemId = req.body.checkbox;
     const listName = req.body.listName;
 
@@ -118,7 +121,7 @@ app.post("/delete", function (req,res) {
             }
         });
     } else {
-        List.findOneAndUpdate({name: listName}, {$pull: {items: {_id: checkedItemId}}}, function (err, foundList) {
+        List.findOneAndUpdate({ name: listName }, { $pull: { items: { _id: checkedItemId } } }, function (err, foundList) {
             if (!err) {
                 res.redirect("/" + listName);
             }
@@ -131,7 +134,7 @@ app.post("/delete", function (req,res) {
 
 let port = process.env.PORT;
 if (port == null || port == "") {
-  port = 3000;
+    port = 3000;
 }
 
 app.listen(port, function () {
